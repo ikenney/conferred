@@ -27,6 +27,7 @@ Gem::Specification.new do |s|
     "README.rdoc",
     "Rakefile",
     "VERSION",
+    "conferred.gemspec",
     "lib/conferred.rb",
     "spec/conferred_spec.rb",
     "spec/spec_helper.rb"

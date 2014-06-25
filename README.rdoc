@@ -1,6 +1,29 @@
 = conferred
 
-Description goes here.
+Manage environment based configto support 12 factor apps 
+
+http://12factor.net/config
+
+== Installation
+
+    gem 'conferred'
+
+
+== Usage
+
+to access the environment use:
+
+    Conferred.gmail_user
+    # returns ENV['GMAIL_USER']
+
+    Conferred.gmail_user?
+    # returns true if ENV['GMAIL_USER'] has a non blank value
+
+    Conferred.gmail_user!
+    # returns ENV['GMAIL_USER'] if it has a non blank value
+    # otherwise raises an error
+
+
 
 == Contributing to conferred
  

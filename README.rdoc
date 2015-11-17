@@ -23,6 +23,12 @@ to access the environment use:
     # returns ENV['GMAIL_USER'] if it has a non blank value
     # otherwise raises an error
 
+to access etcd settings
+  
+    Conferred.provider = :etcd
+    Conferred.namespace = :my_app
+    Conferred.gmail_user
+    # returns the value of etcd key at "http://localhost:2379/v2/keys/:my_app/gmail_user"
 
 
 == Contributing to conferred

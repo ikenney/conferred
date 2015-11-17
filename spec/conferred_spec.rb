@@ -39,4 +39,51 @@ describe "Conferred" do
       end
     end
   end
+
+
+  describe "providers" do
+    describe "#provider" do
+      it "defaults to 'env'" do
+        expect(Conferred.provider).to eq "env"
+      end
+
+      it "raises on missing provider" do
+        Conferred.provider = "none"
+        expect{Conferred.foo}.to raise_error NoMethodError
+      end
+
+      it "sets a provider" do
+        Conferred.provider = "etcd"
+        expect(Conferred.provider).to eq "etcd"
+      end
+    end
+
+    describe "#namespace" do
+      before do
+        Conferred.provider = "etcd"
+        Conferred.namespace = "section"
+      end
+
+      it "sets a namespace" do
+        expect(Conferred.namespace).to eq "section"
+      end
+
+      it "passes the namespace to etcd" do
+        expect(Net::HTTP).to receive(:get)
+          .with(URI('http://localhost:2379/section/secret'))
+        Conferred.secret
+      end
+    end
+
+    describe "etcd" do
+      it "calls the correct lookup function based on provider" do
+        Conferred.provider="etcd"
+        Conferred.namespace=nil
+        allow(Net::HTTP).to receive(:get)
+          .with(URI('http://localhost:2379/secret'))
+          .and_return('{"action":"get","node":{"key":"/secret","value":"foo","modifiedIndex":2962,"createdIndex":2962}}')
+        expect(Conferred.secret).to eq "foo"
+      end
+    end
+  end
 end

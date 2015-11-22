@@ -12,6 +12,7 @@ http://12factor.net/config
 == Usage
 
 to access the environment use:
+------------------------------
 
     Conferred.gmail_user
     # returns ENV['GMAIL_USER']
@@ -23,13 +24,20 @@ to access the environment use:
     # returns ENV['GMAIL_USER'] if it has a non blank value
     # otherwise raises an error
 
-to access etcd settings
+to access etcd settings:
+------------------------
   
     Conferred.provider = :etcd
     Conferred.namespace = :my_app
     Conferred.gmail_user
     # returns the value of etcd key at "http://localhost:2379/v2/keys/:my_app/gmail_user"
+    # if etcd does not respond with a value try to lookup in the environment
 
+to configure from the enviromnent:
+----------------------------------
+
+export CONFERRED_PROVIDER=etcd
+export CONFERRED_ETCD_NAMESPACE=my_app
 
 == Contributing to conferred
  

@@ -5,6 +5,12 @@ def set_envs(params)
 end
 
 describe "Conferred" do
+  before do
+    #reset to defaults
+    Conferred.namespace = nil
+    Conferred.provider = nil
+  end
+
   context "simple config methods " do
     describe "accessor methods" do
       it "returns environment setting" do
@@ -34,6 +40,7 @@ describe "Conferred" do
         set_envs "A_SETTING" => "value 123"
         expect(Conferred.a_setting?).to eq true
       end
+
       it "is false when missing" do
         expect(Conferred.another_setting?).to eq false
       end
@@ -43,10 +50,6 @@ describe "Conferred" do
 
   describe "providers" do
     describe "#provider" do
-      before do
-        Conferred.provider= nil
-      end
-
       it "defaults to 'env'" do
         expect(Conferred.provider).to eq "env"
       end
@@ -70,24 +73,47 @@ describe "Conferred" do
     describe "#namespace" do
       before do
         Conferred.provider = "etcd"
-        Conferred.namespace = "section"
       end
 
-      it "sets a namespace" do
-        expect(Conferred.namespace).to eq "section"
+      context "configured namespace" do
+        before do
+          Conferred.namespace = "section"
+        end
+
+        it "sets a namespace" do
+          expect(Conferred.namespace).to eq "section"
+        end
+
+
+        it "passes the namespace to etcd" do
+          expect(Net::HTTP).to receive(:get)
+            .with(URI('http://localhost:2379/section/secret'))
+          Conferred.secret
+        end
       end
 
-      it "passes the namespace to etcd" do
-        expect(Net::HTTP).to receive(:get)
-          .with(URI('http://localhost:2379/section/secret'))
-        Conferred.secret
+      context "inferred namespace" do
+        before do
+          set_envs "CONFERRED_ETC_NAMESPACE" => "monty"
+        end
+
+        it "defers to the environment" do
+          expect(Conferred.namespace).to eq "monty"
+        end
+
+        it "configured value overides environment" do
+          Conferred.namespace = "sect"
+          expect(Conferred.namespace).to eq "sect"
+        end
       end
     end
 
     describe "etcd" do
+      before do
+        Conferred.provider = "etcd"
+      end
+
       it "calls the correct lookup function based on provider" do
-        Conferred.provider="etcd"
-        Conferred.namespace=nil
         allow(Net::HTTP).to receive(:get)
           .with(URI('http://localhost:2379/secret'))
           .and_return('{"action":"get","node":{"key":"/secret","value":"foo","modifiedIndex":2962,"createdIndex":2962}}')

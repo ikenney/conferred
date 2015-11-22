@@ -3,8 +3,6 @@ require 'json'
 class Conferred
   @@provider = "env"
   class << self
-    attr_accessor :namespace
-    
     def provider=(value)
       @@provider=value
     end
@@ -13,11 +11,17 @@ class Conferred
       @@provider || ENV["CONFERRED_PROVIDER"] || "env"
     end
 
+    def namespace=(value)
+      @@namespace=value
+    end
+
+    def namespace
+      @@namespace || ENV["CONFERRED_ETC_NAMESPACE"] || ""
+    end
+
+
     def method_missing(setting, *args, &block)
-      if setting =~ /#{provider}_setting_value/
-        super
-        return
-      end
+      super if setting =~ /#{provider}_setting_value/
       method = :setting_value
       method = :setting_value? if setting[-1] == "?"
       method = :setting_value! if setting[-1] == "!"
@@ -61,7 +65,9 @@ class Conferred
     end
 
     def etcd_setting_namespace
-      self.namespace ? "#{self.namespace}/" : ""
+      return "" unless self.namespace 
+      return "" if self.namespace.empty?
+      "#{self.namespace}/"
     end
 
     def setting_method_name

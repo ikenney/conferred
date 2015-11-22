@@ -10,7 +10,7 @@ class Conferred
     end
 
     def provider
-      @@provider || "env"
+      @@provider || ENV["CONFERRED_PROVIDER"] || "env"
     end
 
     def method_missing(setting, *args, &block)
@@ -52,7 +52,7 @@ class Conferred
         resp = JSON.parse(Net::HTTP.get(etcd_setting_endpoint(key)))
         resp["node"]["value"]
       rescue
-        ""
+        env_setting_value(key)
       end
     end
 

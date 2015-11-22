@@ -43,6 +43,10 @@ describe "Conferred" do
 
   describe "providers" do
     describe "#provider" do
+      before do
+        Conferred.provider= nil
+      end
+
       it "defaults to 'env'" do
         expect(Conferred.provider).to eq "env"
       end
@@ -50,6 +54,11 @@ describe "Conferred" do
       it "raises on missing provider" do
         Conferred.provider = "none"
         expect{Conferred.foo}.to raise_error NoMethodError
+      end
+
+      it "takes a provider from the environment" do
+        ENV["CONFERRED_PROVIDER"] = "new"
+        expect(Conferred.provider).to eq "new"
       end
 
       it "sets a provider" do
@@ -83,6 +92,14 @@ describe "Conferred" do
           .with(URI('http://localhost:2379/secret'))
           .and_return('{"action":"get","node":{"key":"/secret","value":"foo","modifiedIndex":2962,"createdIndex":2962}}')
         expect(Conferred.secret).to eq "foo"
+      end
+
+      it "falls back to the envorinment" do
+        ENV["EXTRA_SECRET"] = "shh"
+        allow(Net::HTTP).to receive(:get)
+          .with(URI('http://localhost:2379/extra_secret'))
+          .and_return("")
+        expect(Conferred.extra_secret).to eq "shh"
       end
     end
   end

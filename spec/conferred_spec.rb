@@ -70,62 +70,128 @@ describe "Conferred" do
       end
     end
 
-    describe "#namespace" do
+    context "provider: etcd" do
       before do
         Conferred.provider = "etcd"
       end
 
-      context "configured namespace" do
+      describe "#namespace" do
+        context "configured namespace" do
+          before do
+            Conferred.namespace = nil
+          end
+
+          it "defaults to empty namespace" do
+            expect(Conferred.namespace).to eq ""
+          end
+            
+          it "sets a namespace" do
+            Conferred.namespace = "section"
+            expect(Conferred.namespace).to eq "section"
+          end
+
+          it "reads from environment" do
+            set_envs "CONFERRED_ETCD_NAMESPACE" => "xyz"
+            expect(Conferred.namespace).to eq "xyz"
+          end
+        end
+
+        context "inferred namespace" do
+          before do
+            set_envs "CONFERRED_ETCD_NAMESPACE" => "monty"
+          end
+
+          it "defers to the environment" do
+            expect(Conferred.namespace).to eq "monty"
+          end
+
+          it "configured value overides environment" do
+            Conferred.namespace = "sect"
+            expect(Conferred.namespace).to eq "sect"
+          end
+        end
+      end
+
+      describe "#etcd_host" do
         before do
-          Conferred.namespace = "section"
+          Conferred.etcd_host = nil
+        end 
+
+        it "defaults to docker host" do
+          expect(Conferred.etcd_host).to eq "172.17.42.1"
         end
 
-        it "sets a namespace" do
-          expect(Conferred.namespace).to eq "section"
-        end
-
-
-        it "passes the namespace to etcd" do
-          expect(Net::HTTP).to receive(:get)
-            .with(URI('http://localhost:2379/section/secret'))
-          Conferred.secret
-        end
+        it "reads from CONFERRED_ETCD_HOST environment" do
+          set_envs "CONFERRED_ETCD_HOST" => "myhost"
+          expect(Conferred.etcd_host).to eq "myhost"
+        end 
       end
 
-      context "inferred namespace" do
+      describe "#etcd_port" do
         before do
-          set_envs "CONFERRED_ETC_NAMESPACE" => "monty"
+          Conferred.etcd_port = nil
+        end
+        it "defaults to 2379" do
+          expect(Conferred.etcd_port).to eq "2379"
         end
 
-        it "defers to the environment" do
-          expect(Conferred.namespace).to eq "monty"
+        it "reads environment" do
+          set_envs "CONFERRED_ETCD_PORT" => "1234"
+          expect(Conferred.etcd_port).to eq "1234"
+        end 
+
+        it "allows assignment" do
+          Conferred.etcd_port = "4321"
+          expect(Conferred.etcd_port).to eq "4321"
+        end
+      end
+
+      describe "#etcd_scheme" do
+        before do
+          Conferred.etcd_scheme = nil
+        end
+        it "defaults to http" do
+          expect(Conferred.etcd_scheme).to eq "http"
         end
 
-        it "configured value overides environment" do
-          Conferred.namespace = "sect"
-          expect(Conferred.namespace).to eq "sect"
+        it "reads environment" do
+          set_envs "CONFERRED_ETCD_SCHEME" => "sftp"
+          expect(Conferred.etcd_scheme).to eq "sftp"
+        end 
+
+        it "allows assignment" do
+          Conferred.etcd_scheme = "https"
+          expect(Conferred.etcd_scheme).to eq "https"
         end
       end
-    end
 
-    describe "etcd" do
-      before do
-        Conferred.provider = "etcd"
+
+
+      describe "#etc_setting_prefix" do
+        it "uses the provided settings" do
+          Conferred.etcd_scheme = "https"
+          Conferred.etcd_host = "etcd.host"
+          Conferred.etcd_port = "2222"
+          Conferred.namespace = "my-section"
+          expect(Conferred.etcd_setting_prefix).to eq "https://etcd.host:2222/my-section/"
+        end
       end
 
-      it "calls the correct lookup function based on provider" do
-        allow(Net::HTTP).to receive(:get)
-          .with(URI('http://localhost:2379/secret'))
-          .and_return('{"action":"get","node":{"key":"/secret","value":"foo","modifiedIndex":2962,"createdIndex":2962}}')
-        expect(Conferred.secret).to eq "foo"
-      end
+      describe "value lookup" do
+        it "calls the correct lookup function based on provider" do
+          allow(Net::HTTP).to receive(:get)
+            .with(URI("#{Conferred.etcd_setting_prefix}secret"))
+            .and_return('{"action":"get","node":{"key":"/secret","value":"foo","modifiedIndex":2962,"createdIndex":2962}}')
+          expect(Conferred.secret).to eq "foo"
+        end
 
-      it "falls back to the envorinment" do
-        ENV["EXTRA_SECRET"] = "shh"
-        allow(Net::HTTP).to receive(:get)
-          .with(URI('http://localhost:2379/extra_secret'))
-          .and_return("")
-        expect(Conferred.extra_secret).to eq "shh"
+        it "falls back to the environment" do
+          ENV["EXTRA_SECRET"] = "shh"
+          allow(Net::HTTP).to receive(:get)
+            .with(URI("#{Conferred.etcd_setting_prefix}extra_secret"))
+            .and_return("")
+          expect(Conferred.extra_secret).to eq "shh"
+        end
       end
     end
   end
